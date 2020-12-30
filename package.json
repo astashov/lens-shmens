@@ -1,6 +1,6 @@
 {
   "name": "lens-shmens",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "TypeScript introspectable lens library, with ability to create \"recordings\" - delayed lens execution.",
   "types": "dist/index.d.ts",
   "main": "dist/index.js",
