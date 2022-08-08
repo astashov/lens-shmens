@@ -450,4 +450,12 @@ export class Lens<T, R> {
       return "Lens";
     }
   }
+
+  public record(value: R, name?: string): ILensRecordingPayload<T> {
+    return Lens.buildLensRecording(this, value, name);
+  }
+
+  public recordModify(fn: (v: R, getters: {}) => R, name?: string): ILensRecordingPayload<T> {
+    return Lens.buildLensModifyRecording(this, fn, {}, name);
+  }
 }
