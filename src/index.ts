@@ -32,6 +32,7 @@ export type ILensRecordingPayload<T> = {
   type: "set" | "modify";
   value: { v: any };
   log: (startName: string) => void;
+  prepend: <R>(lens: Lens<R, T> | LensBuilder<R, T, {}>) => ILensRecordingPayload<R>;
 };
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -302,7 +303,27 @@ export class Lens<T, R> {
       }
       console.log([startName, ...lens.from.slice(1), lens.to].join(" -> "), "=", "`modify`");
     };
-    return { fn, str: fn.toString(), lens, lensGetters, value, log, type: "modify" };
+    return {
+      fn,
+      str: fn.toString(),
+      lens,
+      lensGetters,
+      value,
+      log,
+      type: "modify",
+      prepend: <V, W extends ILensGetters<V>>(
+        newLensOrBuilder: Lens<V, T> | LensBuilder<V, T, W>
+      ): ILensRecordingPayload<V> => {
+        const newLens = newLensOrBuilder instanceof Lens ? newLensOrBuilder : newLensOrBuilder.get();
+        const combinedLens = newLens.then(lens);
+        const newLensGetters = ObjectUtils.keys(lensGetters).reduce<W>((memo, key) => {
+          const newGetter = newLens.then(lensGetters[key]);
+          (memo as any)[key] = newGetter as any;
+          return memo;
+        }, {} as any);
+        return this.buildLensModifyRecording(combinedLens, modifyFn as any, newLensGetters, name);
+      },
+    };
   }
 
   public static buildLensRecording<T, R>(
@@ -324,7 +345,19 @@ export class Lens<T, R> {
       }
       console.log([startName, ...lens.from.slice(1), lens.to].join(" -> "), "=", value);
     };
-    return { fn, str: fn.toString(), lens, value: { v: value }, log, type: "set" };
+    return {
+      fn,
+      str: fn.toString(),
+      lens,
+      value: { v: value },
+      log,
+      type: "set",
+      prepend: <U>(newLensOrBuilder: Lens<U, T> | LensBuilder<U, T, {}>): ILensRecordingPayload<U> => {
+        const newLens = newLensOrBuilder instanceof Lens ? newLensOrBuilder : newLensOrBuilder.get();
+        const combinedLens = newLens.then(lens);
+        return this.buildLensRecording(combinedLens, value, name);
+      },
+    };
   }
 
   public static build<T, U extends ILensGetters<T>>(lens: U): IPartialBuilder<T, U> {
