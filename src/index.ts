@@ -52,7 +52,8 @@ export interface IPartialBuilder<T, U extends ILensGetters<T>> {
   ) => LensBuilder<T, T extends unknown[] ? T[number] : never, U>;
   findBy: <A extends T extends unknown[] ? IArrayElement<T> : never, B extends keyof A>(
     key: B,
-    value: A[B]
+    value: A[B],
+    isReverse?: boolean
   ) => LensBuilder<T, T extends unknown[] ? T[number] : never, U>;
   get: () => Lens<T, T>;
 }
@@ -66,7 +67,8 @@ interface IPartialBuilderWithObject<T> {
   ) => LensBuilderWithObject<T, T extends unknown[] ? T[number] : never>;
   findBy: <A extends T extends unknown[] ? IArrayElement<T> : never, B extends keyof A>(
     key: B,
-    value: A[B]
+    value: A[B],
+    isReverse?: boolean
   ) => LensBuilderWithObject<T, T extends unknown[] ? T[number] : never>;
   get: () => Lens<T, T>;
 }
@@ -107,10 +109,11 @@ export class LensBuilderWithObject<T, R> extends AbstractLensBuilder<T, R> {
       },
       findBy: <A extends T extends unknown[] ? IArrayElement<T> : never, B extends keyof A>(
         key: B,
-        value: A[B]
+        value: A[B],
+        isReverse?: boolean
       ): LensBuilderWithObject<T, T extends unknown[] ? T[number] : never> => {
         // @ts-ignore
-        return new LensBuilderWithObject<T, T[number], U>(lensFactory(key, value), obj);
+        return new LensBuilderWithObject<T, T[number], U>(lensFactory(key, value, isReverse), obj);
       },
       get: (): Lens<T, T> => {
         return new Lens(
@@ -144,10 +147,11 @@ export class LensBuilderWithObject<T, R> extends AbstractLensBuilder<T, R> {
 
   public findBy<A extends R extends unknown[] ? IArrayElement<R> : never, B extends keyof A>(
     key: B,
-    value: A[B]
+    value: A[B],
+    isReverse?: boolean
   ): LensBuilderWithObject<T, R extends unknown[] ? R[number] : never> {
     // @ts-ignore
-    return new LensBuilderWithObject<T, R[number], U>(this.lens.then(Lens.findBy<R>()(key, value)), this.obj);
+    return new LensBuilderWithObject<T, R[number], U>(this.lens.then(Lens.findBy()(key, value, isReverse)), this.obj);
   }
 
   public set(value: R): T {
@@ -187,10 +191,11 @@ export class LensBuilder<T, R, U extends ILensGetters<T>> extends AbstractLensBu
       },
       findBy: <A extends T extends unknown[] ? IArrayElement<T> : never, B extends keyof A>(
         key: B,
-        value: A[B]
+        value: A[B],
+        isReverse?: boolean
       ): LensBuilder<T, T extends unknown[] ? T[number] : never, U> => {
         // @ts-ignore
-        return new LensBuilder<T, T[number], U>(lensFactory(key, value), this.lensGetters);
+        return new LensBuilder<T, T[number], U>(lensFactory(key, value, isReverse), this.lensGetters);
       },
       get: (): Lens<T, T> => {
         return new Lens(
@@ -227,10 +232,11 @@ export class LensBuilder<T, R, U extends ILensGetters<T>> extends AbstractLensBu
 
   public findBy<A extends R extends unknown[] ? IArrayElement<R> : never, B extends keyof A>(
     key: B,
-    value: A[B]
+    value: A[B],
+    isReverse?: boolean
   ): LensBuilder<T, R extends unknown[] ? R[number] : never, U> {
     // @ts-ignore
-    return new LensBuilder<T, R[number], U>(this.lens.then(Lens.findBy<R>()(key, value)), this.lensGetters);
+    return new LensBuilder<T, R[number], U>(this.lens.then(Lens.findBy<R>()(key, value, isReverse)), this.lensGetters);
   }
 
   public set(obj: T, value: R): T {
@@ -410,12 +416,37 @@ export class Lens<T, R> {
 
   public static findBy<T extends any[], A extends IArrayElement<T>, B extends keyof A>(): (
     key: A,
-    value: A[B]
+    value: A[B],
+    isReverse?: boolean
   ) => Lens<T, T[number]> {
-    return (key: A, value: A[B]) => {
+    return (key: A, value: A[B], isReverse?: boolean) => {
       return new Lens<T, T[keyof T]>(
-        (a) => a.filter((e) => e[key] === value)[0],
-        (a, v) => a.map((e) => (e[key] === value ? v : e)) as T,
+        (a) => {
+          if (isReverse) {
+            return a.filter((e) => e[key] === value).reverse()[0];
+          } else {
+            return a.filter((e) => e[key] === value)[0];
+          }
+        },
+        (a, v) => {
+          let index = -1;
+          if (isReverse) {
+            for (let i = a.length - 1; i >= 0; i--) {
+              if (a[i][key] === value) {
+                index = i;
+                break;
+              }
+            }
+          } else {
+            for (let i = 0; i < a.length; i++) {
+              if (a[i][key] === value) {
+                index = i;
+                break;
+              }
+            }
+          }
+          return a.map((e, i) => (i === index ? v : e)) as T;
+        },
         { from: "obj", to: `${key} == ${value}` }
       );
     };
