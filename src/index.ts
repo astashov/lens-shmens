@@ -56,6 +56,8 @@ export interface IPartialBuilder<T, U extends ILensGetters<T>> {
     isReverse?: boolean
   ) => LensBuilder<T, T extends unknown[] ? T[number] : never, U>;
   get: () => Lens<T, T>;
+  record: (value: T, name?: string) => ILensRecordingPayload<T>;
+  recordModify: (fn: (v: T) => T, name?: string) => ILensRecordingPayload<T>;
 }
 
 interface IPartialBuilderWithObject<T> {
@@ -71,6 +73,8 @@ interface IPartialBuilderWithObject<T> {
     isReverse?: boolean
   ) => LensBuilderWithObject<T, T extends unknown[] ? T[number] : never>;
   get: () => Lens<T, T>;
+  record: (value: T, name?: string) => ILensRecordingPayload<T>;
+  recordModify: (fn: (v: T) => T, name?: string) => ILensRecordingPayload<T>;
 }
 
 abstract class AbstractLensBuilder<T, R> {
@@ -120,6 +124,29 @@ export class LensBuilderWithObject<T, R> extends AbstractLensBuilder<T, R> {
           (s) => s,
           (s, v) => v,
           { from: "obj", to: "obj" }
+        );
+      },
+      record: (value: T, name?: string): ILensRecordingPayload<T> => {
+        return Lens.buildLensRecording(
+          new Lens<T, T>(
+            (s) => s,
+            (s, v) => v,
+            { from: "obj", to: "obj" }
+          ),
+          value,
+          name
+        );
+      },
+      recordModify: (fn: (v: T) => T, name?: string): ILensRecordingPayload<T> => {
+        return Lens.buildLensModifyRecording(
+          new Lens<T, T>(
+            (s) => s,
+            (s, v) => v,
+            { from: "obj", to: "obj" }
+          ),
+          fn,
+          {},
+          name
         );
       },
     };
@@ -202,6 +229,29 @@ export class LensBuilder<T, R, U extends ILensGetters<T>> extends AbstractLensBu
           (s) => s,
           (s, v) => v,
           { from: "obj", to: "obj" }
+        );
+      },
+      record: (value: T, name?: string): ILensRecordingPayload<T> => {
+        return Lens.buildLensRecording(
+          new Lens<T, T>(
+            (s) => s,
+            (s, v) => v,
+            { from: "obj", to: "obj" }
+          ),
+          value,
+          name
+        );
+      },
+      recordModify: (fn: (v: T) => T, name?: string): ILensRecordingPayload<T> => {
+        return Lens.buildLensModifyRecording(
+          new Lens<T, T>(
+            (s) => s,
+            (s, v) => v,
+            { from: "obj", to: "obj" }
+          ),
+          fn,
+          {},
+          name
         );
       },
     };
