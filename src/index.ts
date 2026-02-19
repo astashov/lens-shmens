@@ -45,7 +45,7 @@ export type ILensGetters<T> = { [P in string]: Lens<T, any> };
 
 export interface IPartialBuilder<T, U extends ILensGetters<T>> {
   p: <R extends keyof T>(key: R) => LensBuilder<T, T[R], U>;
-  pi: <R extends keyof T>(key: R) => LensBuilder<T, Exclude<T[R], undefined>, U>;
+  pi: <R extends keyof T>(key: R, fallback?: Exclude<T[R], undefined>) => LensBuilder<T, Exclude<T[R], undefined>, U>;
   i: (index: number) => LensBuilder<T, T extends unknown[] ? T[number] : never, U>;
   find: <A extends T extends unknown[] ? IArrayElement<T> : never>(
     cb: (el: A) => boolean
@@ -62,7 +62,7 @@ export interface IPartialBuilder<T, U extends ILensGetters<T>> {
 
 interface IPartialBuilderWithObject<T> {
   p: <R extends keyof T>(key: R) => LensBuilderWithObject<T, T[R]>;
-  pi: <R extends keyof T>(key: R) => LensBuilderWithObject<T, Exclude<T[R], undefined>>;
+  pi: <R extends keyof T>(key: R, fallback?: Exclude<T[R], undefined>) => LensBuilderWithObject<T, Exclude<T[R], undefined>>;
   i: (index: number) => LensBuilderWithObject<T, T extends unknown[] ? T[number] : never>;
   find: <A extends T extends unknown[] ? IArrayElement<T> : never>(
     cb: (el: A) => boolean
@@ -98,10 +98,18 @@ export class LensBuilderWithObject<T, R> extends AbstractLensBuilder<T, R> {
       p: <R extends keyof T>(key: R): LensBuilderWithObject<T, T[R]> => {
         return new LensBuilderWithObject<T, T[R]>(lensFactory(key), obj);
       },
-      pi: <R extends keyof T>(key: R): LensBuilderWithObject<T, Exclude<T[R], undefined>> => {
-        const lens = lensFactory(key);
-        lens._optional = true;
-        return new LensBuilderWithObject<T, Exclude<T[R], undefined>>(lens as any, obj);
+      pi: <R extends keyof T>(key: R, fallback?: Exclude<T[R], undefined>): LensBuilderWithObject<T, Exclude<T[R], undefined>> => {
+        const baseLens = lensFactory(key);
+        if (fallback !== undefined) {
+          const lens = new Lens<T, Exclude<T[R], undefined>>(
+            (s) => (baseLens.get(s) ?? fallback) as any,
+            baseLens.set as any,
+            { from: baseLens.from, to: baseLens.to }
+          );
+          return new LensBuilderWithObject<T, Exclude<T[R], undefined>>(lens, obj);
+        }
+        baseLens._optional = true;
+        return new LensBuilderWithObject<T, Exclude<T[R], undefined>>(baseLens as any, obj);
       },
       i: (index: number): LensBuilderWithObject<T, T extends unknown[] ? T[number] : never> => {
         // @ts-ignore
@@ -158,8 +166,16 @@ export class LensBuilderWithObject<T, R> extends AbstractLensBuilder<T, R> {
     return new LensBuilderWithObject<T, R[K]>(this.lens.then(Lens.prop<R>()(key)), this.obj);
   }
 
-  public pi<K extends keyof R>(key: K): LensBuilderWithObject<T, Exclude<R[K], undefined>> {
+  public pi<K extends keyof R>(key: K, fallback?: Exclude<R[K], undefined>): LensBuilderWithObject<T, Exclude<R[K], undefined>> {
     const propLens = Lens.prop<R>()(key);
+    if (fallback !== undefined) {
+      const lens = new Lens<R, Exclude<R[K], undefined>>(
+        (s) => (propLens.get(s) ?? fallback) as any,
+        propLens.set as any,
+        { from: propLens.from, to: propLens.to }
+      );
+      return new LensBuilderWithObject<T, Exclude<R[K], undefined>>(this.lens.then(lens), this.obj);
+    }
     propLens._optional = true;
     return new LensBuilderWithObject<T, Exclude<R[K], undefined>>(this.lens.then(propLens as any), this.obj);
   }
@@ -207,10 +223,18 @@ export class LensBuilder<T, R, U extends ILensGetters<T>> extends AbstractLensBu
       p: <R extends keyof T>(key: R): LensBuilder<T, T[R], U> => {
         return new LensBuilder<T, T[R], U>(lensFactory(key), lensGetters);
       },
-      pi: <R extends keyof T>(key: R): LensBuilder<T, Exclude<T[R], undefined>, U> => {
-        const lens = lensFactory(key);
-        lens._optional = true;
-        return new LensBuilder<T, Exclude<T[R], undefined>, U>(lens as any, lensGetters);
+      pi: <R extends keyof T>(key: R, fallback?: Exclude<T[R], undefined>): LensBuilder<T, Exclude<T[R], undefined>, U> => {
+        const baseLens = lensFactory(key);
+        if (fallback !== undefined) {
+          const lens = new Lens<T, Exclude<T[R], undefined>>(
+            (s) => (baseLens.get(s) ?? fallback) as any,
+            baseLens.set as any,
+            { from: baseLens.from, to: baseLens.to }
+          );
+          return new LensBuilder<T, Exclude<T[R], undefined>, U>(lens, lensGetters);
+        }
+        baseLens._optional = true;
+        return new LensBuilder<T, Exclude<T[R], undefined>, U>(baseLens as any, lensGetters);
       },
       i: (index: number): LensBuilder<T, T extends unknown[] ? T[number] : never, U> => {
         // @ts-ignore
@@ -272,8 +296,19 @@ export class LensBuilder<T, R, U extends ILensGetters<T>> extends AbstractLensBu
     return new LensBuilder<T, R[number], U>(this.lens.then(Lens.index<R>()(index)), this.lensGetters);
   }
 
-  public pi<K extends keyof R>(key: K): LensBuilder<T, Exclude<R[K], undefined>, U> {
+  public pi<K extends keyof R>(key: K, fallback?: Exclude<R[K], undefined>): LensBuilder<T, Exclude<R[K], undefined>, U> {
     const propLens = Lens.prop<R>()(key);
+    if (fallback !== undefined) {
+      const lens = new Lens<R, Exclude<R[K], undefined>>(
+        (s) => (propLens.get(s) ?? fallback) as any,
+        propLens.set as any,
+        { from: propLens.from, to: propLens.to }
+      );
+      return new LensBuilder<T, Exclude<R[K], undefined>, U>(
+        this.lens.then(lens),
+        this.lensGetters
+      );
+    }
     propLens._optional = true;
     return new LensBuilder<T, Exclude<R[K], undefined>, U>(
       this.lens.then(propLens as any),
