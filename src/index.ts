@@ -583,7 +583,9 @@ export class Lens<T, R> {
     };
     this.get = (obj) => {
       const result = this._getRaw(obj);
-      if (result === LENS_OPTIONAL_BREAK) return undefined as any;
+      if (result === LENS_OPTIONAL_BREAK) {
+        return undefined as any;
+      }
       return result;
     };
     this.set = (obj, value) => {
@@ -607,7 +609,9 @@ export class Lens<T, R> {
   public modify(obj: T, f: (value: R) => R): T {
     if (this._optional) {
       const current = this._getRaw(obj);
-      if (current === LENS_OPTIONAL_BREAK) return obj;
+      if (current === LENS_OPTIONAL_BREAK) {
+        return obj;
+      }
       return this.set(obj, f(current));
     }
     return this.set(obj, f(this.get(obj)));
@@ -631,7 +635,9 @@ export class Lens<T, R> {
           return obj;
         }
         const newParent = lens.set(parent, value);
-        if (newParent === parent) return obj;
+        if (newParent === parent) {
+          return obj;
+        }
         return thisSet(obj, newParent);
       },
       {

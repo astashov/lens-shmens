@@ -68,17 +68,23 @@ describe("pi()", () => {
     describe("modify", () => {
       it("modifies when the field exists", () => {
         const obj: IState = { a: { child: { value: 1 }, name: "hello" }, b: "world" };
-        const result = lb<IState>().pi("a").p("name").modify(obj, (v) => v + "!");
+        const result = lb<IState>()
+          .pi("a")
+          .p("name")
+          .modify(obj, (v) => v + "!");
         expect(result.a!.name).to.eql("hello!");
       });
 
       it("does not call f when intermediate is undefined", () => {
         const obj: IState = { b: "world" };
         let called = false;
-        const result = lb<IState>().pi("a").p("name").modify(obj, (v) => {
-          called = true;
-          return v + "!";
-        });
+        const result = lb<IState>()
+          .pi("a")
+          .p("name")
+          .modify(obj, (v) => {
+            called = true;
+            return v + "!";
+          });
         expect(result).to.equal(obj);
         expect(called).to.eql(false);
       });
@@ -86,17 +92,21 @@ describe("pi()", () => {
       it("calls f with undefined when pi is the last step and value is undefined", () => {
         const obj: IState = { b: "world", count: undefined };
         let received: number | undefined;
-        const result = lb<IState>().pi("count").modify(obj, (v) => {
-          received = v as any;
-          return 42;
-        });
+        const result = lb<IState>()
+          .pi("count")
+          .modify(obj, (v) => {
+            received = v as any;
+            return 42;
+          });
         expect(received).to.eql(undefined);
         expect(result.count).to.eql(42);
       });
 
       it("calls f with the value when pi is the last step and value exists", () => {
         const obj: IState = { b: "world", count: 10 };
-        const result = lb<IState>().pi("count").modify(obj, (v) => v + 1);
+        const result = lb<IState>()
+          .pi("count")
+          .modify(obj, (v) => v + 1);
         expect(result.count).to.eql(11);
       });
     });
@@ -120,7 +130,10 @@ describe("pi()", () => {
     describe("recordModify", () => {
       it("modifies via recording when the field exists", () => {
         const obj: IState = { a: { child: { value: 1 }, name: "hello" }, b: "world" };
-        const recording = lb<IState>().pi("a").p("name").recordModify((v) => v + "!");
+        const recording = lb<IState>()
+          .pi("a")
+          .p("name")
+          .recordModify((v) => v + "!");
         const result = recording.fn(obj);
         expect(result.a!.name).to.eql("hello!");
       });
@@ -128,10 +141,13 @@ describe("pi()", () => {
       it("does not call f via recording when intermediate is undefined", () => {
         const obj: IState = { b: "world" };
         let called = false;
-        const recording = lb<IState>().pi("a").p("name").recordModify((v) => {
-          called = true;
-          return v + "!";
-        });
+        const recording = lb<IState>()
+          .pi("a")
+          .p("name")
+          .recordModify((v) => {
+            called = true;
+            return v + "!";
+          });
         const result = recording.fn(obj);
         expect(result).to.equal(obj);
         expect(called).to.eql(false);
@@ -179,10 +195,14 @@ describe("pi()", () => {
       it("modify does not call f when pi field is undefined", () => {
         const obj: IRequiredOuter = { a: { name: "hello" }, b: "world" };
         let called = false;
-        const result = lb<IRequiredOuter>().p("a").pi("child").p("value").modify(obj, (v) => {
-          called = true;
-          return v + 1;
-        });
+        const result = lb<IRequiredOuter>()
+          .p("a")
+          .pi("child")
+          .p("value")
+          .modify(obj, (v) => {
+            called = true;
+            return v + 1;
+          });
         expect(result).to.equal(obj);
         expect(called).to.eql(false);
       });
@@ -193,10 +213,14 @@ describe("pi()", () => {
         }
         const obj: IState2 = { a: { b: {} } };
         let received: number | undefined;
-        const result = lb<IState2>().p("a").pi("b").p("c").modify(obj, (v) => {
-          received = v as any;
-          return 42;
-        });
+        const result = lb<IState2>()
+          .p("a")
+          .pi("b")
+          .p("c")
+          .modify(obj, (v) => {
+            received = v as any;
+            return 42;
+          });
         expect(received).to.eql(undefined);
         expect(result.a.b!.c).to.eql(42);
       });
@@ -245,13 +269,19 @@ describe("pi()", () => {
     describe("modify", () => {
       it("modifies using fallback when the field is undefined", () => {
         const obj: IState = { b: "world" };
-        const result = lb<IState>().pi("a", defaultNested).p("name").modify(obj, (v) => v + "!");
+        const result = lb<IState>()
+          .pi("a", defaultNested)
+          .p("name")
+          .modify(obj, (v) => v + "!");
         expect(result.a!.name).to.eql("default!");
       });
 
       it("modifies the existing value when the field exists", () => {
         const obj: IState = { a: { child: { value: 1 }, name: "hello" }, b: "world" };
-        const result = lb<IState>().pi("a", defaultNested).p("name").modify(obj, (v) => v + "!");
+        const result = lb<IState>()
+          .pi("a", defaultNested)
+          .p("name")
+          .modify(obj, (v) => v + "!");
         expect(result.a!.name).to.eql("hello!");
       });
     });
@@ -268,7 +298,10 @@ describe("pi()", () => {
     describe("recordModify", () => {
       it("modifies via recording using fallback", () => {
         const obj: IState = { b: "world" };
-        const recording = lb<IState>().pi("a", defaultNested).p("name").recordModify((v) => v + "!");
+        const recording = lb<IState>()
+          .pi("a", defaultNested)
+          .p("name")
+          .recordModify((v) => v + "!");
         const result = recording.fn(obj);
         expect(result.a!.name).to.eql("default!");
       });
@@ -298,10 +331,13 @@ describe("pi()", () => {
     it("modify is a no-op via lf when field is undefined", () => {
       const obj: IState = { b: "world" };
       let called = false;
-      const result = lf(obj).pi("a").p("name").modify((v) => {
-        called = true;
-        return v + "!";
-      });
+      const result = lf(obj)
+        .pi("a")
+        .p("name")
+        .modify((v) => {
+          called = true;
+          return v + "!";
+        });
       expect(result).to.equal(obj);
       expect(called).to.eql(false);
     });
@@ -331,10 +367,13 @@ describe("pi()", () => {
     it("prepend recordModify does not call f when optional field is undefined", () => {
       const obj: IRoot = { state: { b: "world" } };
       let called = false;
-      const recording = lb<IState>().pi("a").p("name").recordModify((v) => {
-        called = true;
-        return v + "!";
-      });
+      const recording = lb<IState>()
+        .pi("a")
+        .p("name")
+        .recordModify((v) => {
+          called = true;
+          return v + "!";
+        });
       const prepended = recording.prepend(lb<IRoot>().p("state").get());
       prepended.fn(obj);
       expect(called).to.eql(false);

@@ -6,7 +6,8 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
-    "test": "mocha -r ts-node/register --timeout 0 test/**/*.test.ts"
+    "test": "mocha -r ts-node/register --timeout 0 test/**/*.test.ts",
+    "lint": "eslint src/ test/"
   },
   "repository": {
     "type": "git",
