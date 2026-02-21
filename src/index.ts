@@ -4,6 +4,8 @@ import { IArrayElement } from "./utils/types";
 type IGetter<T, R> = (obj: T) => R;
 type ISetter<T, R> = (obj: T, value: R) => T;
 
+const LENS_OPTIONAL_BREAK: unique symbol = Symbol("LENS_OPTIONAL_BREAK");
+
 export class LensError<T, R> extends Error {
   constructor(
     m: string,
@@ -379,6 +381,7 @@ export function lf<T>(obj: T): IPartialBuilderWithObject<T> {
 
 export class Lens<T, R> {
   public readonly get: IGetter<T, R>;
+  public readonly _getRaw: (obj: T) => any;
   public readonly set: ISetter<T, R>;
   public readonly from: string[];
   public readonly to: string;
@@ -565,7 +568,7 @@ export class Lens<T, R> {
   }
 
   constructor(getter: IGetter<T, R>, setter: ISetter<T, R>, args: { from: string | string[]; to: string }) {
-    this.get = (obj) => {
+    this._getRaw = (obj) => {
       try {
         return getter(obj);
       } catch (e) {
@@ -577,6 +580,11 @@ export class Lens<T, R> {
           nestedErr
         );
       }
+    };
+    this.get = (obj) => {
+      const result = this._getRaw(obj);
+      if (result === LENS_OPTIONAL_BREAK) return undefined as any;
+      return result;
     };
     this.set = (obj, value) => {
       try {
@@ -597,27 +605,33 @@ export class Lens<T, R> {
   }
 
   public modify(obj: T, f: (value: R) => R): T {
+    if (this._optional) {
+      const current = this._getRaw(obj);
+      if (current === LENS_OPTIONAL_BREAK) return obj;
+      return this.set(obj, f(current));
+    }
     return this.set(obj, f(this.get(obj)));
   }
 
   public then<V>(lens: Lens<R, V>): Lens<T, V> {
     const isOptional = this._optional;
-    const thisGet = this.get;
+    const thisGetRaw = this._getRaw;
     const thisSet = this.set;
     const result = new Lens<T, V>(
       (obj) => {
-        const nextObj = thisGet(obj);
-        if (isOptional && nextObj == null) {
-          return undefined as any;
+        const nextObj = thisGetRaw(obj);
+        if (isOptional && (nextObj == null || nextObj === LENS_OPTIONAL_BREAK)) {
+          return LENS_OPTIONAL_BREAK as any;
         }
-        return lens.get(nextObj);
+        return lens._getRaw(nextObj);
       },
       (obj, value) => {
-        const parent = thisGet(obj);
-        if (isOptional && parent == null) {
+        const parent = thisGetRaw(obj);
+        if (isOptional && (parent == null || parent === LENS_OPTIONAL_BREAK)) {
           return obj;
         }
         const newParent = lens.set(parent, value);
+        if (newParent === parent) return obj;
         return thisSet(obj, newParent);
       },
       {

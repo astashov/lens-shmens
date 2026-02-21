@@ -15,5 +15,8 @@
     "skipLibCheck": true,
     "outDir": "dist"
   },
-  "include": ["src/**/*"]
+  "ts-node": {
+    "files": true
+  },
+  "include": ["src/**/*", "test/**/*"]
 }
